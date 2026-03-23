@@ -180,7 +180,7 @@ export default function SettingsPage() {
                             <Label>Code</Label>
                             <Input name="account_code" value={newAccount.account_code} onChange={(e) => setNewAccount({ ...newAccount, account_code: e.target.value })} required />
                         </div>
-                        <div className="space-y-2 flex-[2]">
+                        <div className="space-y-2 flex-2">
                             <Label>Account Name</Label>
                             <Input name="account_name" value={newAccount.account_name} onChange={(e) => setNewAccount({ ...newAccount, account_name: e.target.value })} required />
                         </div>

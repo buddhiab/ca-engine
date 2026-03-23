@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Paperclip, FileCheck, X } from "lucide-react";
+import { Paperclip, FileCheck, X, ScanLine, Loader2 } from "lucide-react";
 
 export default function JournalEntryForm({ onEntryPosted }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isScanning, setIsScanning] = useState(false); // NEW: State for AI Scanner
     const [companyId, setCompanyId] = useState(null);
     const [isFetchingWorkspace, setIsFetchingWorkspace] = useState(true);
     const [accounts, setAccounts] = useState([]);
@@ -19,9 +20,9 @@ export default function JournalEntryForm({ onEntryPosted }) {
     const [formData, setFormData] = useState({
         date: "",
         description: "",
-        debitAccount: "", 
+        debitAccount: "",
         debitAmount: "",
-        creditAccount: "", 
+        creditAccount: "",
         creditAmount: "",
     });
 
@@ -38,7 +39,7 @@ export default function JournalEntryForm({ onEntryPosted }) {
                     .limit(1);
 
                 if (workspaceError) throw workspaceError;
-                
+
                 if (workspaceData && workspaceData.length > 0) {
                     const currentCompanyId = workspaceData[0].company_id;
                     setCompanyId(currentCompanyId);
@@ -51,7 +52,7 @@ export default function JournalEntryForm({ onEntryPosted }) {
 
                     if (accountsError) throw accountsError;
                     setAccounts(accountsData || []);
-                    
+
                 } else {
                     throw new Error("No secure workspace found.");
                 }
@@ -71,6 +72,42 @@ export default function JournalEntryForm({ onEntryPosted }) {
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
+        }
+    };
+
+    // NEW: Function to handle the AI OCR Scanning
+    const handleScanReceipt = async () => {
+        if (!file) return;
+        setIsScanning(true);
+
+        try {
+            const scanFormData = new FormData();
+            scanFormData.append('file', file);
+
+            const response = await fetch('/api/ocr', {
+                method: 'POST',
+                body: scanFormData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            // AUTO-FILL THE REACT STATE!
+            setFormData(prev => ({
+                ...prev,
+                date: data.date || prev.date,
+                description: data.supplier ? `Receipt from ${data.supplier}` : prev.description,
+                debitAmount: data.totalAmount || prev.debitAmount,
+                creditAmount: data.totalAmount || prev.creditAmount
+            }));
+
+            alert("AI Scan Complete! Form auto-filled.");
+
+        } catch (error) {
+            alert("AI Scanning Failed: " + error.message);
+        } finally {
+            setIsScanning(false);
         }
     };
 
@@ -104,7 +141,7 @@ export default function JournalEntryForm({ onEntryPosted }) {
             if (file) {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${Date.now()}.${fileExt}`;
-                const filePath = `${companyId}/${fileName}`; 
+                const filePath = `${companyId}/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
                     .from('receipts')
@@ -114,7 +151,7 @@ export default function JournalEntryForm({ onEntryPosted }) {
                 receiptPath = filePath;
             }
 
-            // 2. Insert the Journal Entry (now with receipt_url)
+            // 2. Insert the Journal Entry
             const { data: journalEntry, error: jeError } = await supabase
                 .from('journal_entries')
                 .insert([{
@@ -136,14 +173,14 @@ export default function JournalEntryForm({ onEntryPosted }) {
                     {
                         company_id: companyId,
                         entry_id: journalEntry.id,
-                        account_id: formData.debitAccount, 
+                        account_id: formData.debitAccount,
                         debit_amount: debitVal,
                         credit_amount: 0.00
                     },
                     {
                         company_id: companyId,
                         entry_id: journalEntry.id,
-                        account_id: formData.creditAccount, 
+                        account_id: formData.creditAccount,
                         debit_amount: 0.00,
                         credit_amount: creditVal
                     }
@@ -222,31 +259,45 @@ export default function JournalEntryForm({ onEntryPosted }) {
                         </div>
                     </div>
 
-                    {/* SOURCE DOCUMENT UPLOAD SECTION */}
-                    <div className="space-y-3 pt-2">
+                    {/* SOURCE DOCUMENT UPLOAD SECTION WITH AI */}
+                    <div className="space-y-3 pt-2 border-t border-slate-100 mt-6">
                         <Label className="text-slate-700 flex items-center gap-2">
                             <Paperclip className="h-4 w-4" /> Source Document (Receipt/Invoice)
                         </Label>
                         <div className="relative">
-                            <Input 
-                                type="file" 
-                                accept=".pdf,.jpg,.jpeg,.png" 
-                                onChange={handleFileChange} 
+                            <Input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={handleFileChange}
                                 className="cursor-pointer file:bg-slate-100 file:border-0 file:rounded-md file:px-2 file:py-1 file:mr-4 file:text-xs file:font-bold hover:file:bg-slate-200"
                             />
                             {file && (
-                                <div className="mt-2 flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 p-2 rounded border border-emerald-100">
-                                    <FileCheck className="h-3.5 w-3.5" />
-                                    <span className="truncate">{file.name} ready for secure upload</span>
-                                    <button type="button" onClick={() => setFile(null)} className="ml-auto text-slate-400 hover:text-red-500">
-                                        <X className="h-4 w-4" />
-                                    </button>
+                                <div className="mt-4 flex flex-col gap-3">
+                                    <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 p-2 rounded border border-emerald-100">
+                                        <FileCheck className="h-3.5 w-3.5" />
+                                        <span className="truncate">{file.name} ready for secure upload</span>
+                                        <button type="button" onClick={() => setFile(null)} className="ml-auto text-slate-400 hover:text-red-500">
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+
+                                    {/* AI MAGIC BUTTON */}
+                                    <Button
+                                        type="button"
+                                        onClick={handleScanReceipt}
+                                        disabled={isScanning}
+                                        variant="outline"
+                                        className="w-full flex items-center gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                    >
+                                        {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
+                                        {isScanning ? "AI Analyzing Document..." : "Auto-Fill with AI"}
+                                    </Button>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <Button type="submit" disabled={isSubmitting || isFetchingWorkspace || !companyId} className="w-full bg-slate-900 hover:bg-slate-800 text-white disabled:bg-slate-400">
+                    <Button type="submit" disabled={isSubmitting || isFetchingWorkspace || !companyId} className="w-full bg-slate-900 hover:bg-slate-800 text-white disabled:bg-slate-400 mt-6">
                         {isSubmitting ? "Processing Transaction..." : "Post Journal Entry"}
                     </Button>
                 </form>
