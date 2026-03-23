@@ -2,48 +2,87 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
+    const cleanApiKey = process.env.MINDEE_API_KEY ? process.env.MINDEE_API_KEY.trim() : "NO_KEY_FOUND";
+
     try {
-        // 1. Get the image file from the frontend request
         const formData = await request.formData();
         const file = formData.get('file');
 
-        if (!file) {
-            return NextResponse.json({ error: "No file provided" }, { status: 400 });
-        }
+        if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
-        // 2. Prepare the file to send to Mindee's AI
         const mindeeFormData = new FormData();
-        mindeeFormData.append('document', file);
+        mindeeFormData.append('file', file); 
+        mindeeFormData.append('model_id', '4d5c646d-0e7f-4b5d-be89-8637214c5115'); 
 
-        // 3. Call the Mindee Receipt Parsing AI
-        const response = await fetch("https://api.mindee.net/v1/products/mindee/expense_receipts/v5/predict", {
+        console.log("Sending document to Mindee V2...");
+
+        const enqueueResponse = await fetch("https://api-v2.mindee.net/v2/inferences/enqueue", {
             method: 'POST',
-            headers: {
-                'Authorization': `Token ${process.env.MINDEE_API_KEY}`
-            },
+            headers: { 'Authorization': cleanApiKey },
             body: mindeeFormData
         });
 
-        const data = await response.json();
+        const enqueueData = await enqueueResponse.json();
 
-        if (!response.ok) {
-            throw new Error(data.api_request?.error?.message || "Failed to parse receipt");
+        if (!enqueueResponse.ok) {
+            throw new Error(enqueueData.detail || "Failed to enqueue document");
         }
 
-        // 4. Extract the exact data we need from the AI's response
-        const prediction = data.document.inference.prediction;
+        const jobId = enqueueData.job?.id;
+        if (!jobId) throw new Error("No Job ID returned.");
 
+        console.log(`✅ Document enqueued! Job ID: ${jobId}`);
+
+        let isDone = false;
+        let prediction = null;
+        let attempts = 0;
+
+        while (!isDone && attempts < 45) { 
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1500)); 
+
+            const pollResponse = await fetch(`https://api-v2.mindee.net/v2/jobs/${jobId}`, {
+                method: 'GET',
+                headers: { 'Authorization': cleanApiKey }
+            });
+
+            const pollData = await pollResponse.json();
+
+            // 🚨 THE FIX: Mindee V2 stores your custom model data in `inference.result.fields`
+            if (pollData.inference && pollData.inference.result && pollData.inference.result.fields) {
+                isDone = true;
+                prediction = pollData.inference.result.fields;
+                console.log("✅ AI Processing Complete!");
+                break;
+            }
+
+            const currentStatus = pollData.job?.status;
+            if (currentStatus === "failed") {
+                throw new Error("Mindee AI processing failed on their server.");
+            }
+        }
+
+        if (!prediction) {
+            throw new Error("AI Processing timed out. Mindee took too long to respond.");
+        }
+
+        console.log("✅ EXTRACTED FIELDS:", JSON.stringify({
+            date: prediction.date?.value,
+            supplier: prediction.supplier_name?.value,
+            totalAmount: prediction.total_amount?.value
+        }));
+
+        // Map the fields safely to the React form
         const extractedData = {
-            date: prediction.date.value, // e.g., "2026-03-15"
-            supplier: prediction.supplier_name.value, // e.g., "Starbucks"
-            totalAmount: prediction.total_amount.value, // e.g., 14.50
+            date: prediction.date?.value || prediction.receipt_date?.value || "",
+            supplier: prediction.supplier_name?.value || prediction.supplier?.value || "",
+            totalAmount: prediction.total_amount?.value || prediction.total?.value || 0,
         };
 
-        // 5. Send the clean data back to the React frontend
         return NextResponse.json(extractedData);
 
     } catch (error) {
-        console.error("OCR API Error:", error);
+        console.error("OCR API Error:", error.message);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
