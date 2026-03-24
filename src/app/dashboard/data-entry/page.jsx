@@ -4,12 +4,18 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Search, Calendar as CalendarIcon, FileText, ExternalLink, Download, Loader2 } from "lucide-react";
+import { Search, FileText, Download } from "lucide-react";
+
+// 🚨 Importing all your custom accounting engines
 import JournalEntryForm from "@/components/accounting/JournalEntryForm";
+import ForexPaymentForm from "@/components/accounting/ForexPaymentForm";
+import RecordSaleForm from "@/components/accounting/RecordSaleForm";
+import FixedAssetForm from "@/components/accounting/FixedAssetForm"; // The new automation engine
+
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; // Import the function directly
+import autoTable from "jspdf-autotable";
 
 export default function JournalEntryPage() {
     const [entries, setEntries] = useState([]);
@@ -55,18 +61,13 @@ export default function JournalEntryPage() {
         if (!error) window.open(data.signedUrl, '_blank');
     };
 
-    // FIX: Manual Registration of autoTable
     const exportToPDF = () => {
         const doc = new jsPDF();
-        
-        // Manual registration logic to prevent "autoTable is not a function"
-        if (typeof doc.autoTable !== 'function') {
-            autoTable(doc);
-        }
+        if (typeof doc.autoTable !== 'function') autoTable(doc);
 
         doc.setFontSize(20);
         doc.text("Transaction Audit Report", 14, 20);
-        
+
         const tableRows = filteredEntries.map(entry => [
             new Date(entry.entry_date).toLocaleDateString(),
             entry.description,
@@ -86,11 +87,29 @@ export default function JournalEntryPage() {
 
     return (
         <div className="space-y-10">
-            <section>
+
+            {/* 🚨 THE COMMAND CENTER: All Data Entry Forms 🚨 */}
+            <section className="space-y-8 flex flex-col items-center md:items-start">
+
+                {/* 1. Standard / AI Journal Entry */}
                 <JournalEntryForm onEntryPosted={fetchEntries} />
+                <div className="w-full max-w-2xl"><hr className="border-slate-200 my-2" /></div>
+
+                {/* 2. Automated Sales & Tax Engine */}
+                <RecordSaleForm onSalePosted={fetchEntries} />
+                <div className="w-full max-w-2xl"><hr className="border-slate-200 my-2" /></div>
+
+                {/* 3. Multi-Currency Forex Engine */}
+                <ForexPaymentForm onPaymentPosted={fetchEntries} />
+                <div className="w-full max-w-2xl"><hr className="border-slate-200 my-2" /></div>
+
+                {/* 4. Automated Fixed Asset Depreciation Engine */}
+                <FixedAssetForm />
+
             </section>
 
-            <section className="space-y-4">
+            {/* RECENT TRANSACTIONS AUDIT TABLE */}
+            <section className="space-y-4 pt-6 border-t border-slate-200">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h3 className="text-xl font-bold text-slate-900">Recent Transactions</h3>
@@ -108,8 +127,8 @@ export default function JournalEntryPage() {
                 </div>
 
                 <Card className="shadow-sm border-slate-200">
-                    <CardContent className="p-0">
-                        <table className="w-full text-sm text-left">
+                    <CardContent className="p-0 overflow-x-auto">
+                        <table className="w-full text-sm text-left whitespace-nowrap">
                             <thead className="bg-slate-50 border-b text-slate-700">
                                 <tr>
                                     <th className="px-6 py-3">Date</th>
@@ -135,6 +154,13 @@ export default function JournalEntryPage() {
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredEntries.length === 0 && !isLoading && (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-8 text-center text-slate-500">
+                                            No transactions found.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </CardContent>
