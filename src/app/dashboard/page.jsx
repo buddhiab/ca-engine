@@ -4,8 +4,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { DollarSign, TrendingUp, CreditCard, Activity, ShieldCheck } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { DollarSign, TrendingUp, CreditCard, Activity, ShieldCheck, Inbox, BarChart3 } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 export default function DashboardOverview() {
   const [metrics, setMetrics] = useState({
@@ -113,7 +113,23 @@ export default function DashboardOverview() {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-slate-500 animate-pulse font-medium">Loading command center...</div>;
+    return (
+      <div className="space-y-8 max-w-6xl animate-pulse">
+        <div>
+          <div className="h-8 w-64 bg-slate-200 rounded mb-2"></div>
+          <div className="h-4 w-96 bg-slate-100 rounded"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 bg-slate-100 rounded-xl"></div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="h-[400px] bg-slate-100 rounded-xl lg:col-span-2"></div>
+          <div className="h-[400px] bg-slate-100 rounded-xl lg:col-span-1"></div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -125,10 +141,10 @@ export default function DashboardOverview() {
 
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-slate-200 hover:-translate-y-1 hover:shadow-md transition-all duration-300 bg-linear-to-br from-white to-slate-50 group">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">Total Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-slate-400" />
+            <TrendingUp className="h-4 w-4 text-slate-400 group-hover:animate-pulse" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">{formatCurrency(metrics.revenue)}</div>
@@ -136,10 +152,10 @@ export default function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-slate-200 hover:-translate-y-1 hover:shadow-md transition-all duration-300 bg-linear-to-br from-white to-slate-50 group">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">Total Expenses</CardTitle>
-            <CreditCard className="h-4 w-4 text-slate-400" />
+            <CreditCard className="h-4 w-4 text-slate-400 group-hover:animate-pulse" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">{formatCurrency(metrics.expenses)}</div>
@@ -147,25 +163,25 @@ export default function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className={`shadow-sm border-slate-200 ${metrics.netIncome >= 0 ? 'bg-emerald-50/50' : 'bg-red-50/50'}`}>
+        <Card className={`shadow-sm border-slate-200 hover:-translate-y-1 hover:shadow-md transition-all duration-300 group ${metrics.netIncome >= 0 ? 'bg-linear-to-br from-white to-emerald-50/50' : 'bg-linear-to-br from-white to-rose-50/50'}`}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className={`text-sm font-medium ${metrics.netIncome >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>Net Income</CardTitle>
-            <Activity className={`h-4 w-4 ${metrics.netIncome >= 0 ? 'text-emerald-500' : 'text-red-500'}`} />
+            <CardTitle className={`text-sm font-medium ${metrics.netIncome >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>Net Income</CardTitle>
+            <Activity className={`h-4 w-4 group-hover:animate-pulse ${metrics.netIncome >= 0 ? 'text-emerald-500' : 'text-rose-500'}`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${metrics.netIncome >= 0 ? 'text-emerald-900' : 'text-red-900'}`}>
+            <div className={`text-2xl font-bold ${metrics.netIncome >= 0 ? 'text-emerald-900' : 'text-rose-900'}`}>
               {formatCurrency(metrics.netIncome)}
             </div>
-            <p className={`text-xs mt-1 ${metrics.netIncome >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+            <p className={`text-xs mt-1 ${metrics.netIncome >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               {metrics.netIncome >= 0 ? "Profitable" : "Operating at a Loss"}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-slate-200 hover:-translate-y-1 hover:shadow-md transition-all duration-300 bg-linear-to-br from-white to-slate-50 group">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">Total Assets</CardTitle>
-            <DollarSign className="h-4 w-4 text-slate-400" />
+            <DollarSign className="h-4 w-4 text-slate-400 group-hover:animate-pulse" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">{formatCurrency(metrics.assets)}</div>
@@ -183,13 +199,24 @@ export default function DashboardOverview() {
           </CardHeader>
           <CardContent>
             {chartData.length === 0 ? (
-              <div className="h-[300px] flex items-center justify-center text-slate-400 text-sm italic">
-                Post a journal entry to generate chart data.
+              <div className="h-[300px] flex flex-col items-center justify-center text-slate-400 text-sm">
+                <BarChart3 className="h-10 w-10 text-slate-300 mb-3 opacity-50" />
+                <p>Post a journal entry to generate chart data.</p>
               </div>
             ) : (
               <div className="h-[300px] w-full mt-4">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(val) => `Rs ${val}`} />
@@ -198,9 +225,9 @@ export default function DashboardOverview() {
                       contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
                     />
                     <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
-                    <Bar dataKey="Income" fill="#0f172a" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                    <Bar dataKey="Expense" fill="#94a3b8" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                  </BarChart>
+                    <Area type="monotone" dataKey="Income" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorIncome)" />
+                    <Area type="monotone" dataKey="Expense" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorExpense)" />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             )}
@@ -219,26 +246,32 @@ export default function DashboardOverview() {
           <CardContent>
             <div className="space-y-5">
               {recentLogs.length === 0 ? (
-                <p className="text-sm text-slate-400 italic text-center py-4">No recent activity.</p>
+                <div className="flex flex-col items-center justify-center py-8 text-slate-400 text-sm">
+                  <Inbox className="h-8 w-8 text-slate-300 mb-2 opacity-50" />
+                  <p>No recent activity.</p>
+                </div>
               ) : (
-                recentLogs.map((log) => (
-                  <div key={log.id} className="flex gap-3">
-                    <div className={`mt-0.5 w-2 h-2 rounded-full ${log.action_type === 'INSERT' ? 'bg-emerald-500' :
-                        log.action_type === 'DELETE' ? 'bg-red-500' : 'bg-blue-500'
-                      }`} />
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-900 leading-none">
-                        {log.action_type === 'INSERT' ? 'Created new' : log.action_type === 'DELETE' ? 'Deleted' : 'Updated'} record
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        in <span className="font-mono">{log.table_name.replace('_', ' ')}</span>
-                      </p>
-                      <p className="text-[10px] text-slate-400">
-                        {new Date(log.created_at).toLocaleString()}
-                      </p>
+                <div className="relative pl-4 space-y-5">
+                  <div className="absolute left-1.5 top-2 bottom-2 w-px bg-slate-100"></div>
+                  {recentLogs.map((log) => (
+                    <div key={log.id} className="flex gap-4 group hover:bg-slate-50 transition-colors duration-200 p-2 rounded-md -mx-2 relative z-10">
+                      <div className={`mt-1.5 w-2 h-2 rounded-full ring-4 ring-white shrink-0 ${log.action_type === 'INSERT' ? 'bg-emerald-500' :
+                          log.action_type === 'DELETE' ? 'bg-rose-500' : 'bg-blue-500'
+                        }`} />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-slate-900 leading-none">
+                          {log.action_type === 'INSERT' ? 'Created new' : log.action_type === 'DELETE' ? 'Deleted' : 'Updated'} record
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          in <span className="font-mono">{log.table_name.replace('_', ' ')}</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {new Date(log.created_at).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </CardContent>

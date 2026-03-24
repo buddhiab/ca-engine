@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
 import { TrendingUp, TrendingDown, Calculator, AlertTriangle, Loader2 } from "lucide-react";
 
 export default function ForecastingDashboard() {
@@ -136,7 +136,20 @@ export default function ForecastingDashboard() {
         return new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', maximumFractionDigits: 0 }).format(amount).replace('LKR', 'Rs');
     };
 
-    if (isLoading) return <div className="p-8 text-slate-500 animate-pulse font-medium">Booting Prediction Engine...</div>;
+    if (isLoading) {
+        return (
+            <div className="space-y-8 max-w-6xl animate-pulse">
+                <div>
+                    <div className="h-8 w-64 bg-slate-200 rounded mb-2"></div>
+                    <div className="h-4 w-96 bg-slate-100 rounded"></div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="h-[400px] bg-slate-100 rounded-xl lg:col-span-1"></div>
+                    <div className="h-[400px] bg-slate-100 rounded-xl lg:col-span-2"></div>
+                </div>
+            </div>
+        );
+    }
 
     const sixMonthCash = chartData.length > 0 ? chartData[6].ProjectedCash : 0;
     const isDying = sixMonthCash < 0;
@@ -151,10 +164,10 @@ export default function ForecastingDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* INTERACTIVE SCENARIO CONTROLS */}
-                <Card className="shadow-sm border-slate-200 lg:col-span-1 h-fit">
+                <Card className="shadow-sm border-slate-200 lg:col-span-1 h-fit hover:-translate-y-1 hover:shadow-md transition-all duration-300 bg-linear-to-br from-white to-slate-50 group">
                     <CardHeader className="bg-slate-50/50 border-b border-slate-100">
                         <CardTitle className="text-lg text-slate-900 flex items-center gap-2">
-                            <Calculator className="h-5 w-5" /> Scenario Toggles
+                            <Calculator className="h-5 w-5 group-hover:animate-pulse" /> Scenario Toggles
                         </CardTitle>
                         <CardDescription>Adjust variables to see how it impacts your 6-month runway.</CardDescription>
                     </CardHeader>
@@ -162,7 +175,7 @@ export default function ForecastingDashboard() {
                         <div className="space-y-3">
                             <Label className="font-bold text-slate-700 flex justify-between">
                                 <span>Revenue Growth (%)</span>
-                                <span className={scenarios.revenueGrowthPercent >= 0 ? "text-emerald-600" : "text-red-600"}>
+                                <span className={scenarios.revenueGrowthPercent >= 0 ? "text-emerald-600" : "text-rose-600"}>
                                     {scenarios.revenueGrowthPercent}% / mo
                                 </span>
                             </Label>
@@ -179,7 +192,7 @@ export default function ForecastingDashboard() {
                         <div className="space-y-3 pt-4 border-t border-slate-100">
                             <Label className="font-bold text-slate-700 flex justify-between">
                                 <span>Extra Monthly Expenses (Rs)</span>
-                                <span className="text-red-600">-{formatCurrency(scenarios.extraMonthlyExpenses)}</span>
+                                <span className="text-rose-600">-{formatCurrency(scenarios.extraMonthlyExpenses)}</span>
                             </Label>
                             <Input
                                 type="number"
@@ -205,21 +218,21 @@ export default function ForecastingDashboard() {
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-slate-300">Avg. Exp/Mo:</span>
-                                <span className="font-mono text-red-400">{formatCurrency(baseline.avgMonthlyExpenses)}</span>
+                                <span className="font-mono text-rose-400">{formatCurrency(baseline.avgMonthlyExpenses)}</span>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* VISUALIZATION CHART */}
-                <Card className="shadow-sm border-slate-200 lg:col-span-2">
+                <Card className="shadow-sm border-slate-200 lg:col-span-2 hover:-translate-y-1 hover:shadow-md transition-all duration-300 bg-linear-to-br from-white to-slate-50 group">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <div>
                             <CardTitle className="text-lg text-slate-900">6-Month Runway Projection</CardTitle>
                             <CardDescription>Forecasted total assets over time.</CardDescription>
                         </div>
                         {isDying ? (
-                            <div className="flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold animate-pulse">
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-bold animate-pulse">
                                 <AlertTriangle className="h-3.5 w-3.5" /> Bankruptcy Risk
                             </div>
                         ) : (
@@ -231,7 +244,17 @@ export default function ForecastingDashboard() {
                     <CardContent>
                         <div className="h-[400px] w-full mt-4">
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                    <defs>
+                                        <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#0f172a" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#0f172a" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="colorBaseline" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.2} />
+                                            <stop offset="95%" stopColor="#94a3b8" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(val) => `Rs ${val}`} />
@@ -243,27 +266,30 @@ export default function ForecastingDashboard() {
                                     <Legend wrapperStyle={{ paddingTop: '20px' }} />
 
                                     {/* Line at Zero Cash (Danger Zone) */}
-                                    <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'insideBottomRight', value: 'Zero Cash', fill: '#ef4444', fontSize: 12 }} />
+                                    <ReferenceLine y={0} stroke="#f43f5e" strokeDasharray="3 3" label={{ position: 'insideBottomRight', value: 'Zero Cash', fill: '#f43f5e', fontSize: 12 }} />
 
-                                    <Line
+                                    <Area
                                         type="monotone"
                                         dataKey="ProjectedCash"
                                         name="Scenario Projection"
                                         stroke="#0f172a"
                                         strokeWidth={3}
-                                        dot={{ r: 4, strokeWidth: 2 }}
+                                        fillOpacity={1}
+                                        fill="url(#colorProjected)"
                                         activeDot={{ r: 6 }}
                                     />
-                                    <Line
+                                    <Area
                                         type="monotone"
                                         dataKey="BaselineCash"
                                         name="Do Nothing (Baseline)"
                                         stroke="#94a3b8"
                                         strokeWidth={2}
                                         strokeDasharray="5 5"
+                                        fillOpacity={1}
+                                        fill="url(#colorBaseline)"
                                         dot={false}
                                     />
-                                </LineChart>
+                                </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </CardContent>
